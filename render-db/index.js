@@ -8,7 +8,6 @@ const app = express();
 app.use(express.json());
 
 // Debug MONGODB_URI
-console.log("alo MONGODB_URI =", process.env.MONGODB_URI);
 if (!process.env.MONGODB_URI) {
   console.error("MONGODB_URI is not defined!");
   process.exit(1);
