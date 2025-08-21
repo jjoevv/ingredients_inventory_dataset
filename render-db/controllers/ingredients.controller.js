@@ -3,20 +3,45 @@ const Ingredient = require("../models/ingredients.model");
 // Lấy danh sách + Query filter
 exports.getIngredients = async (req, res) => {
   try {
-    const { name, status, minStock, maxStock } = req.query;
-    let filter = {};
+    const { status, unit, updated_by, minStock, maxStock, startDate, endDate } = req.query;
+    const query = {};
 
-    if (name) filter.name = new RegExp(name, "i"); // tìm gần đúng
-    if (status) filter.status = status;
-    if (minStock && minStock > 0) filter.current_stock = { $gte: minStock };
-    if (maxStock && maxStock > 0) {
-      filter.current_stock = {
-        ...(filter.current_stock || {}),
-        $lte: maxStock,
-      };
+    // Lọc theo nhiều status
+    if (status) {
+      query.status = { $in: status.split(',') };
     }
-    const ingredients = await Ingredient.find(filter);
-    res.json(ingredients);
+
+    // Lọc theo nhiều updated_by
+    if (updated_by) {
+      query.updated_by = { $in: updated_by.split(',') };
+    }
+
+    // Lọc theo khoảng stock
+    if (minStock || maxStock) {
+      query.current_stock = {};
+      if (minStock && Number(minStock) > 0) {
+        query.current_stock.$gte = Number(minStock);
+      }
+      if (maxStock && Number(maxStock) > 0) {
+        if (!query.current_stock.$gte || Number(maxStock) > Number(minStock)) {
+          query.current_stock.$lte = Number(maxStock);
+        }
+      }
+    }
+
+    // Lọc theo khoảng thời gian last_updated
+    if (startDate || endDate) {
+      query.last_updated = {};
+      if (startDate) {
+        query.last_updated.$gte = new Date(startDate);
+      }
+      if (endDate) {
+        query.last_updated.$lte = new Date(endDate);
+      }
+    }
+
+    const data = await Ingredient.find(query);
+    res.json(data);
   } catch (err) {
     res.status(500).json({ error: err.message });
   }
